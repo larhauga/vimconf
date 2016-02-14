@@ -7,9 +7,6 @@
 """ }}}
 """ Automatically create needed files and folders on first run (*nix only) {{{
     call system("mkdir -p $HOME/.vim/{swap,undo}")
-    if !filereadable($HOME . "/.vimrc.plugins") | call system("touch $HOME/.vimrc.plugins") | endif
-    if !filereadable($HOME . "/.vimrc.first") | call system("touch $HOME/.vimrc.first") | endif
-    if !filereadable($HOME . "/.vimrc.last") | call system("touch $HOME/.vimrc.last") | endif
 """ }}}
 """ Vundle plugin manager {{{
     """ Automatically setting up Vundle {{{
@@ -30,12 +27,6 @@
     """ }}}
     """ Github repos, uncomment to disable a plugin {{{
         Plugin 'gmarik/Vundle.vim'
-
-        """ Local plugins (and only plugins in this file!) {{{
-            if filereadable($HOME."/.vimrc.plugins")
-                source $HOME/.vimrc.plugins
-            endif
-        """ }}}
 
         " Edit files using sudo/su
         Plugin 'chrisbra/SudoEdit.vim'
@@ -90,6 +81,14 @@
         " Functions, class data etc.
         " REQUIREMENTS: (exuberant)-ctags
         Plugin 'majutsushi/tagbar'
+
+        " Go plugin
+        Plugin 'fatih/vim-go'
+        "Plugin 'nsf/gocode', {'rtp': 'vim/'}
+
+        " Colorscheme molokai
+        Plugin 'fatih/molokai'
+        Plugin 'w0ng/vim-hybrid'
     """ }}}
     """ Finish Vundle stuff {{{
         call vundle#end()
@@ -101,23 +100,22 @@
         endif
     """ }}}
 """ }}}
-""" Local leading config, only for prerequisites and will be overwritten {{{
-    if filereadable($HOME."/.vimrc.first")
-        source $HOME/.vimrc.first
-    endif
-""" }}}
 """ User interface {{{
     """ Syntax highlighting {{{
         filetype plugin indent on                   " detect file plugin+indent
         syntax on                                   " syntax highlighting
         set background=dark                         " we're using a dark bg
-        colorscheme jellybeans                      " colorscheme from plugin
+        "colorscheme jellybeans                      " colorscheme from plugin
+        colorscheme hybrid
+        "let g:rehash256 = 1
         """ Force behavior and filetypes, and by extension highlighting {{{
             augroup FileTypeRules
                 autocmd!
                 autocmd BufNewFile,BufRead *.md set ft=markdown tw=79
                 autocmd BufNewFile,BufRead *.tex set ft=tex tw=79
                 autocmd BufNewFile,BufRead *.txt set ft=sh tw=79
+                autocmd BufNewFile,BufRead *.go set ft=go
+                autocmd BufNewFile,BufRead *.yml set ft=yml tw=79
             augroup END
         """ }}}
         """ 256 colors for maximum jellybeans bling. See commit log for info {{{
@@ -183,6 +181,7 @@
     set splitright                                  " vsplits go right w/focus
     set ttyfast                                     " for faster redraws etc
     set ttymouse=xterm2                             " experimental
+    set lazyredraw                                  " redraw only when we need
     """ Folding {{{
         set foldcolumn=0                            " hide folding column
         set foldmethod=indent                       " folds using indent
@@ -254,6 +253,8 @@
     """ Only auto-comment newline for block comments {{{
         augroup AutoBlockComment
             autocmd! FileType c,cpp setlocal comments -=:// comments +=f://
+            autocmd FileType go setlocal shiftwidth=4 noexpandtab
+            autocmd FileType yml setlocal shiftwidth=2 tabstop=2
         augroup END
     """ }}}
     """ Take comment leaders into account when joining lines, :h fo-table {{{
@@ -356,7 +357,7 @@
                 endif
             endfunction
 
-            nnoremap <leader>r :call NumberToggle()<CR>
+            "nnoremap <leader>r :call NumberToggle()<CR>
         """ }}}
         """ Toggle text wrapping, wrap on whole words {{{
         """ For more info see: http://stackoverflow.com/a/2470885/1076493
@@ -379,21 +380,7 @@
 
             nnoremap <leader>ld :call DeleteMultipleEmptyLines()<CR>
         """ }}}
-        """ Split to relative header/source {{{
-            function! SplitRelSrc()
-                let s:fname = expand("%:t:r")
 
-                if expand("%:e") == "h"
-                    set nosplitright
-                    exe "vsplit" fnameescape(s:fname . ".cpp")
-                    set splitright
-                elseif expand("%:e") == "cpp"
-                    exe "vsplit" fnameescape(s:fname . ".h")
-                endif
-            endfunction
-
-            nnoremap <leader>le :call SplitRelSrc()<CR>
-        """ }}}
         """ Strip trailing whitespace, return to cursor at save {{{
             function! <SID>StripTrailingWhitespace()
                 let l = line(".")
@@ -404,10 +391,20 @@
 
             augroup StripTrailingWhitespace
                 autocmd!
-                autocmd FileType c,cpp,cfg,conf,css,html,perl,python,sh,tex
+                autocmd FileType c,cpp,cfg,conf,css,html,perl,python,sh,tex,go,yml
                             \ autocmd BufWritePre <buffer> :call
                             \ <SID>StripTrailingWhitespace()
             augroup END
+        """ }}}
+
+        """ Go specific {{{
+        au FileType go nmap <leader>go <Plug>(go-run)
+        au FileType go nmap <leader>d <Plug>(go-doc-vertical)
+        "let g:go_highlight_functions = 1  
+        "let g:go_highlight_methods = 1  
+        "let g:go_highlight_structs = 1  
+        "let g:go_highlight_operators = 1  
+        "let g:go_highlight_build_constraints = 1
         """ }}}
     """ }}}
     """ Plugins {{{
@@ -415,21 +412,10 @@
         map <F1> :TagbarToggle<CR>
 
         " Syntastic - toggle error list. Probably should be toggleable.
-        noremap <silent><leader>lo :Errors<CR>
-        noremap <silent><leader>lc :lcl<CR>
+        "noremap <silent><leader>lo :Errors<CR>
+        "noremap <silent><leader>lc :lcl<CR>
     """ }}}
 """ }}}
-""" Plugin settings {{{
-    """ Startify, the fancy start page {{{
-        let g:startify_bookmarks = [
-            \ $HOME . "/.vimrc", $HOME . "/.vimrc.first",
-            \ $HOME . "/.vimrc.last", $HOME . "/.vimrc.plugins"
-            \ ]
-        let g:startify_custom_header = [
-            \ '   Source: http://github.com/timss/vimconf',
-            \ ''
-            \ ]
-    """ }}}
     """ CtrlP - don't recalculate files on start (slow) {{{
         " Don't recalculate files on start (slow)
         let g:ctrlp_clear_cache_on_exit = 0
@@ -449,16 +435,19 @@
         let g:tagbar_status_func = 'TagbarStatusFunc'
     """ }}}
     """ Syntastic {{{
-    """ This is largely up to your own usage, and override these
-    """ changes if be needed. This is merely an exemplification.
-    """ TODO: not be filetype, but filename?
-        let g:syntastic_cpp_check_header = 1
-        let g:syntastic_cpp_compiler_options = ' -std=c++0x'
         let g:syntastic_mode_map = {
             \ 'mode': 'passive',
             \ 'active_filetypes':
-                \ ['c', 'cpp', 'perl', 'python'] }
+                \ ['python', 'go', 'perl', 'c', 'cpp'] }
     """ }}}
+        "set statusline+=%#warningmsg#
+        "set statusline+=%{SyntasticStatuslineFlag()}
+        "set statusline+=%*
+
+        let g:syntastic_always_populate_loc_list = 1
+        let g:syntastic_auto_loc_list = 1
+        let g:syntastic_check_on_open = 1
+        let g:syntastic_check_on_wq = 0
     """ Netrw - the bundled (network) file and directory browser {{{
         let g:netrw_banner = 0
         let g:netrw_list_hide = '^\.$'
@@ -574,7 +563,7 @@
                 let bb = alen > whalf && blen > whalf ? b[-(whalf):] : alen + blen < w - clen || blen < whalf ? b : b[-(w - clen - alen):]
                 return (strlen(bb) < strlen(b) ? '...' : '') . bb . c . aa . (strlen(aa) < strlen(a) ? '...' : '')
             else
-                return b . c . a
+               return b . c . a
             endif
         endfunction
 
@@ -624,9 +613,4 @@
                         \" autocmd BufWritePost <buffer> :call s:syntastic()"
         augroup END
     """ }}}
-""" }}}
-""" Local ending config, will overwrite anything above. Generally use this. {{{
-    if filereadable($HOME."/.vimrc.last")
-        source $HOME/.vimrc.last
-    endif
 """ }}}
