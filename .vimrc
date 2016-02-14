@@ -80,7 +80,7 @@
 
         " Functions, class data etc.
         " REQUIREMENTS: (exuberant)-ctags
-        Plugin 'majutsushi/tagbar'
+        "Plugin 'majutsushi/tagbar'
 
         " Go plugin
         Plugin 'fatih/vim-go'
